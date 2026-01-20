@@ -1,0 +1,12 @@
+version: 2
+
+sources:
+  - name: public
+    description: "Main schema for raw payroll tables"
+    tables:
+      - name: daily_exception_export
+        description: "Export from Deputy for daily exceptions"
+      - name: exception_report
+        description: "Detailed exception report from Deputy"
+      - name: leave_requests
+        description: "Staff leave requests"
