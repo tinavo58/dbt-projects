@@ -1,5 +1,5 @@
 with staff_base as (
-    select * from {{ ref('stg_eh_staff') }}
+    select * from {{ source('public', 'eh_staff') }}
 ),
 
 current_exceptions as (
@@ -46,7 +46,7 @@ final as (
         w.shifts_worked,
         w.total_hours,
         l.leave_taken,
-        null as phnw, -- Public Holiday Not Worked, needs dynamic logic later
+        null as phnw, -- PHNW, needs dynamic logic later
         coalesce(w.total_hours, 0) + coalesce(l.leave_taken, 0) as all_hours
     from selected_staff_details as s
     left join worked_hours as w
@@ -55,6 +55,7 @@ final as (
         using (staff)
     where
         coalesce(w.total_hours, 0) + coalesce(l.leave_taken, 0) < 37
+        and not (s.staff ilike 'Dallas%' and w.total_hours between 29 and 30)
 )
 
 select * from final
