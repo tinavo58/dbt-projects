@@ -47,15 +47,16 @@ final as (
         w.total_hours,
         l.leave_taken,
         null as phnw, -- PHNW, needs dynamic logic later
-        coalesce(w.total_hours, 0) + coalesce(l.leave_taken, 0) as all_hours
+        coalesce(w.total_hours, 0) + coalesce(l.leave_taken, 0) as all_hours -- update when there's PHNW
     from selected_staff_details as s
     left join worked_hours as w
         using (staff)
     left join leave_data as l
         using (staff)
     where
-        coalesce(w.total_hours, 0) + coalesce(l.leave_taken, 0) < 37
-        and not (s.staff ilike 'Dallas%' and w.total_hours between 29 and 30)
+        coalesce(w.total_hours, 0) + coalesce(l.leave_taken, 0) < 37 -- pdate when there's PHNW
+        and not (s.staff ilike 'Dallas%' or s.staff ilike 'Alessandra%' 
+            and coalesce(w.total_hours, 0) + coalesce(l.leave_taken, 0) > 29.5) -- update when there's PHNW
 )
 
 select * from final
