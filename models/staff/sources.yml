@@ -1,0 +1,10 @@
+version: 2
+
+sources:
+  - name: public
+    description: "Main schema for raw staff tables"
+    tables:
+      - name: eh_staff
+        description: "Employment Hero staff data"
+      - name: deputy_staff
+        description: "Deputy staff data"
