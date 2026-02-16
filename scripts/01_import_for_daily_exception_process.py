@@ -10,8 +10,11 @@ from datetime import datetime, timedelta
 
 # --- CONFIGURATION FROM .ENV ---
 DATABASE_URL = os.getenv("DATABASE_URL")
-INPUT_DIR = "input"
-ARCHIVE_DIR = "imported"
+DOWNLOAD_PATH = os.getenv("DOWNLOAD_PATH")
+INPUT_DIR = DOWNLOAD_PATH if DOWNLOAD_PATH else "input"
+# Archive should remain in the project folder
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ARCHIVE_DIR = os.path.join(PROJECT_ROOT, "imported")
 
 class BaseImporter:
     def __init__(self, table_name, file_pattern):
@@ -236,7 +239,6 @@ def main():
         DailyExceptionImporter("daily_exception_export", os.getenv("PATTERN_DAILY_EXCEPTION", "DailyException_*.csv")),
         ExceptionReportImporter("exception_report", os.getenv("PATTERN_EXCEPTION_REPORT", "ExceptionReport*.csv")),
         LeaveRequestImporter("leave_requests", os.getenv("PATTERN_LEAVE_REQUESTS", "leave_taken_table*.csv")),
-        StaffWeeklyImporter("eh_staff", "permanentstaffweekly_*.csv")
     ]
     
     print("🚦 Starting Payroll Import Automation...")
