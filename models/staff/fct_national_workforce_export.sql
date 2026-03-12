@@ -1,5 +1,5 @@
-with exceptions as (
-    select * from {{ ref('int_daily_exceptions_base') }}
+with current_timesheets as (
+    select * from {{ ref('payroll_export') }}
 ),
 
 deputy_staff as (
@@ -7,22 +7,24 @@ deputy_staff as (
 ),
 
 nw_staff as (
-    select staff from deputy_staff where access_role ilike '%national%'
+    select staff, access_role
+    from deputy_staff
+    where access_role ilike '%national%'
 ),
 
 nw_timesheets as (
     select
-        staff as display_name,
-        ts_date as timesheet_date,
-        role_access as access_level_name,
-        site as area,
-        ts_start as timesheet_start_time,
-        ts_end as timesheet_end_time,
-        total_hours as timesheet_total_time,
-        ts_mealbreak as timesheet_meal_break
-    from exceptions
-    where staff in (select staff from nw_staff)
+        staff,
+        ts_date as date,
+        access_role,
+        location_name as area,
+        ts_start as start_time,
+        ts_end as end_time,
+        ts_total_hours as total_time,
+        ts_mealbreak as meal_break
+    from current_timesheets
+    join nw_staff using (staff)
+    order by staff, ts_date
 )
 
 select * from nw_timesheets
-order by display_name, timesheet_date
