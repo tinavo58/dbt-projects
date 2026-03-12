@@ -25,3 +25,4 @@ nw_timesheets as (
 )
 
 select * from nw_timesheets
+order by display_name, timesheet_date
