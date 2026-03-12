@@ -1,0 +1,16 @@
+version: 2
+
+sources:
+  - name: public
+    description: "Main schema for raw payroll tables"
+    tables:
+      - name: pay_categories_report
+        description: "Raw table containing pay category details"
+      - name: deputy_ts
+        description: "Deputy timesheets data"
+      - name: payruns_cas
+        description: "Casual payrun details from Employment Hero"
+      - name: payruns_weekly_ft
+        description: "Weekly full-time payrun details from Employment Hero"
+      - name: payruns_fortnightly
+        description: "Fortnightly payrun details from Employment Hero"
