@@ -7,9 +7,11 @@ current_exceptions as (
 ),
 
 -- Adding logic for relevant staff details
+-- TODO: will use employee_id to link
 selected_staff_details as (
     select
         first_name || ' ' || surname as staff,
+        hours_per_week,
         upper(left(trim(split_part(primary_location, ' - ', 1)), 3)) as site
     from staff_base
     where pay_schedule ilike '%weekly%' -- Weekly FT staff
@@ -38,16 +40,16 @@ worked_hours as (
         count(staff) as shifts_worked,
         sum(total_hours) as total_hours
     from current_exceptions
-    where role_access ilike '%fulltime%'
     group by 1, 2, 3
+),
+
+latest_we as (
+    select max(week_ending) as we from {{ source('public', 'exception_report') }}
 ),
 
 final as (
     select
-        coalesce(
-            w.week_ending,
-            (select max(week_ending) from {{ source('public', 'exception_report') }})
-        ) as week_ending,
+        coalesce(w.week_ending, (select we from latest_we)) as week_ending,
         s.site, -- move site before staff
         s.staff,
         w.Mon, w.Tue, w.Wed, w.Thu, w.Fri, w.Sat, w.Sun,
@@ -55,19 +57,17 @@ final as (
         w.total_hours,
         l.leave_taken,
         null as phnw, -- PHNW, needs dynamic logic later
-        coalesce(w.total_hours, 0) + coalesce(l.leave_taken, 0) as all_hours -- update when there's PHNW
+        coalesce(w.total_hours, 0) + coalesce(l.leave_taken, 0) as all_hours, -- update when there's PHNW
+        s.hours_per_week,
+        coalesce(w.total_hours, 0) + coalesce(l.leave_taken, 0) - s.hours_per_week as hours_diff
     from selected_staff_details as s
     left join worked_hours as w
         using (staff)
     left join leave_data as l
         using (staff)
     where
-        coalesce(w.total_hours, 0) + coalesce(l.leave_taken, 0) < 37 -- update when there's PHNW, using 38 instead of 37 (for further report)
-        -- will update the below later, need to pull in contracted hours from payroll
-        -- and not (s.staff ilike 'Dallas%' or s.staff ilike 'Alessandra%' 
-        --     and coalesce(w.total_hours, 0) + coalesce(l.leave_taken, 0) > 29.5) -- update when there's PHNW
+        coalesce(w.total_hours, 0) + coalesce(l.leave_taken, 0) < s.hours_per_week
+    order by site, all_hours desc
 )
 
 select * from final
-order by site, all_hours desc
-
