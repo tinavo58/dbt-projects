@@ -28,6 +28,13 @@ worked_hours as (
         week_ending,
         staff,
         site,
+        SUM(case WHEN to_char(ts_date, 'Dy') = 'Mon' THEN total_hours ELSE null END) as Mon,
+        SUM(CASE WHEN to_char(ts_date, 'Dy') = 'Tue' THEN total_hours ELSE null END) as Tue,
+        SUM(case WHEN to_char(ts_date, 'Dy') = 'Wed' THEN total_hours ELSE null END) as Wed,
+        SUM(CASE WHEN to_char(ts_date, 'Dy') = 'Thu' THEN total_hours ELSE null END) as Thu,
+        SUM(CASE WHEN to_char(ts_date, 'Dy') = 'Fri' THEN total_hours ELSE null END) as Fri,
+        SUM(CASE WHEN to_char(ts_date, 'Dy') = 'Sat' THEN total_hours ELSE null END) as Sat,
+        SUM(CASE WHEN to_char(ts_date, 'Dy') = 'Sun' THEN total_hours ELSE null END) as Sun,
         count(staff) as shifts_worked,
         sum(total_hours) as total_hours
     from current_exceptions
@@ -41,8 +48,9 @@ final as (
             w.week_ending,
             (select max(week_ending) from {{ source('public', 'exception_report') }})
         ) as week_ending,
+        s.site, -- move site before staff
         s.staff,
-        s.site,
+        w.Mon, w.Tue, w.Wed, w.Thu, w.Fri, w.Sat, w.Sun,
         w.shifts_worked,
         w.total_hours,
         l.leave_taken,
@@ -54,9 +62,12 @@ final as (
     left join leave_data as l
         using (staff)
     where
-        coalesce(w.total_hours, 0) + coalesce(l.leave_taken, 0) < 37 -- pdate when there's PHNW
-        and not (s.staff ilike 'Dallas%' or s.staff ilike 'Alessandra%' 
-            and coalesce(w.total_hours, 0) + coalesce(l.leave_taken, 0) > 29.5) -- update when there's PHNW
+        coalesce(w.total_hours, 0) + coalesce(l.leave_taken, 0) < 37 -- update when there's PHNW, using 38 instead of 37 (for further report)
+        -- will update the below later, need to pull in contracted hours from payroll
+        -- and not (s.staff ilike 'Dallas%' or s.staff ilike 'Alessandra%' 
+        --     and coalesce(w.total_hours, 0) + coalesce(l.leave_taken, 0) > 29.5) -- update when there's PHNW
 )
 
 select * from final
+order by site, all_hours desc
+
