@@ -72,8 +72,8 @@ def generate_folder_name():
         print(f"Error: Date {weDateType} not found in {calendarFilePath}")
         return
 
-    # Folder created in project_root/output
-    folderName = os.path.join(project_root, "output", f"{period['idx']} WE {weStringFormat}")
+    # Folder created in project_root/imported - using imported folder
+    folderName = os.path.join(project_root, "imported", f"{period['idx']} WE {weStringFormat}")
 
     # ---- when accg period file is not available ----
     # no Accounting period file, so use the current week ending date
