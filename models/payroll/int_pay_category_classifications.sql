@@ -7,6 +7,8 @@ with all_categories as (
 select
     pay_category,
     CASE
+        WHEN pay_category in ('Permanent - Public holiday worked', 'Casual - Public holiday worked') THEN 'ORD'
+		WHEN pay_category = 'Permanent Overtime - Public holiday worked' THEN 'OT2.0'
         WHEN pay_category ilike '%allowance%' THEN 'ALLOW'
         WHEN pay_category ilike '%first%' THEN 'OT1.5'
         WHEN pay_category ilike '%after %' THEN 'OT2.0'
