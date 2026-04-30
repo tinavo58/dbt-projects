@@ -26,6 +26,7 @@ ot_rules as (
             or pay_rule ilike '% after 2%'
             or pay_rule ilike '%weekly%'
             or pay_rule ilike '%less than%'
+            or pay_rule ilike '%meal%'
         )
     group by
         week_ending, site, staff,
