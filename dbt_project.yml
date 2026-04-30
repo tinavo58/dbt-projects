@@ -1,0 +1,67 @@
+
+# Name your project! Project names should contain only lowercase characters
+# and underscores. A good package name should reflect your organization's
+# name or the intended use of these models
+name: 'dbt_payroll'
+version: '1.0.0'
+
+# This setting configures which "profile" dbt uses for this project.
+profile: 'dbt_payroll'
+
+# These configurations specify where dbt should look for different types of files.
+# The `model-paths` config, for example, states that models in this project can be
+# found in the "models/" directory. You probably won't need to change these!
+model-paths: ["models"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+
+clean-targets:         # directories to be removed by `dbt clean`
+  - "target"
+  - "dbt_packages"
+
+
+# Configuring models
+# Full documentation: https://docs.getdbt.com/docs/configuring-models
+
+# In this example config, we tell dbt to build all models in the example/
+# directory as views. These settings can be overridden in the individual model
+# files using the `{{ config(...) }}` macro.
+models:
+  dbt_payroll:
+    # Config indicated by + and applies to all files under models/
+    +materialized: view
+    
+    staging:
+      +schema: staging
+    staff:
+      +schema: staff
+    payroll:
+      +schema: payroll
+    daily_exception:
+      +schema: daily_exception
+    super:
+      +schema: super
+  
+
+seeds:
+  dbt_payroll:
+    payroll_export:
+      +column_types:
+        employee_id: bigint
+        ts_total_hours: numeric(10,2)
+        ts_cost: numeric(10,4)
+    casual_staff_with_dob:
+      +column_types:
+        date_of_birth: date
+    quarterly_super:
+      +schema: super
+      +column_types:
+        fund_abn: varchar
+        member_number: varchar
+        employee_id: bigint
+        batch_id: bigint
+    quarterly_pay_categories:
+      +schema: super
