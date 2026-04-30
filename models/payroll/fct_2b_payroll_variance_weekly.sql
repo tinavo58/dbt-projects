@@ -44,7 +44,7 @@ variance as (
         p.paid_hours as py_hrs,
         d.total_hours as d_hrs,
         p.gross_earnings as py_gross,
-        d.total_cost as d_cost,
+        round(d.total_cost, 2) as d_cost,
         (p.paid_hours - d.total_hours) as diff_in_hours,
         (p.gross_earnings - d.total_cost) as diff_in_cost
     FROM payroll_report p
