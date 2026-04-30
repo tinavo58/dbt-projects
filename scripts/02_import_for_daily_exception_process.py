@@ -25,7 +25,7 @@ class BaseImporter:
     def get_files(self):
         """Finds all files matching the pattern in the input folder."""
         if not os.path.exists(INPUT_DIR):
-            print(f"⚠️ Input directory '{INPUT_DIR}' does not exist.")
+            print(f"Warning: Input directory '{INPUT_DIR}' does not exist.")
             return []
         pattern = os.path.join(INPUT_DIR, self.file_pattern)
         return glob.glob(pattern)
@@ -44,7 +44,7 @@ class BaseImporter:
             dest_path = os.path.join(ARCHIVE_DIR, f"{name}_{timestamp}{ext}")
 
         shutil.move(file_path, dest_path)
-        print(f"📦 Archived {file_name} to {ARCHIVE_DIR}/")
+        print(f"Archived {file_name} to {ARCHIVE_DIR}/")
 
     def connect(self):
         return psycopg2.connect(DATABASE_URL)
@@ -52,11 +52,11 @@ class BaseImporter:
     def run_import(self):
         files = self.get_files()
         if not files:
-            print(f"🔍 No files found for {self.table_name} (Pattern: {self.file_pattern})")
+            print(f"No files found for {self.table_name} (Pattern: {self.file_pattern})")
             return
 
         for file_path in files:
-            print(f"📂 Processing {self.table_name}: {os.path.basename(file_path)}")
+            print(f"\nProcessing {self.table_name}: {os.path.basename(file_path)}")
             
             try:
                 self.conn = self.connect()
@@ -67,14 +67,14 @@ class BaseImporter:
                 
                 if success:
                     self.conn.commit()
-                    print(f"✅ {self.table_name} injection successful!")
+                    print(f"Success: {self.table_name} injection complete.")
                     self.move_to_archive(file_path)
                     self.post_import_action()
                 else:
                     self.conn.rollback()
 
             except Exception as e:
-                print(f"❌ Error importing {self.table_name}: {e}")
+                print(f"Error importing {self.table_name}: {e}")
                 if self.conn:
                     self.conn.rollback()
             finally:
@@ -108,11 +108,21 @@ class DailyExceptionImporter(BaseImporter):
             
             missing = [c for c in mapping.keys() if c not in df.columns]
             if missing:
-                print(f"❌ Missing columns: {missing}")
+                print(f"Error - Missing columns: {missing}")
                 return False
                 
             df_clean = df[list(mapping.keys())].rename(columns=mapping).copy()
             df_clean['ts_date'] = pd.to_datetime(df_clean['ts_date'], dayfirst=True).dt.date
+
+            # Deduplication: Remove existing records for the same staff, date, and location
+            unique_triples = df_clean[['staff', 'ts_date', 'location_name']].drop_duplicates()
+            for _, row in unique_triples.iterrows():
+                cur.execute(
+                    f"DELETE FROM {self.table_name} WHERE staff = %s AND ts_date = %s AND location_name = %s",
+                    (row['staff'], row['ts_date'], row['location_name'])
+                )
+            if len(unique_triples) > 0:
+                print(f"  Cleaned up {len(unique_triples)} existing staff/date/location entries from {self.table_name}")
 
             buffer = StringIO()
             df_clean.to_csv(buffer, index=False, header=False)
@@ -121,7 +131,7 @@ class DailyExceptionImporter(BaseImporter):
             cur.copy_from(buffer, self.table_name, sep=',', columns=list(df_clean.columns))
             return True
         except Exception as e:
-            print(f"❌ Processing error: {e}")
+            print(f"Error: {e}")
             return False
 
 class ExceptionReportImporter(BaseImporter):
@@ -145,11 +155,21 @@ class ExceptionReportImporter(BaseImporter):
             
             missing = [c for c in mapping.keys() if c not in df.columns]
             if missing:
-                print(f"❌ Missing columns: {missing}")
+                print(f"Error - Missing columns: {missing}")
                 return False
                 
             df_clean = df[list(mapping.keys())].rename(columns=mapping).copy()
             df_clean['ts_date'] = pd.to_datetime(df_clean['ts_date']).dt.date
+
+            # Deduplication: Remove existing records for the same staff, date, and location
+            unique_triples = df_clean[['staff', 'ts_date', 'location_name']].drop_duplicates()
+            for _, row in unique_triples.iterrows():
+                cur.execute(
+                    f"DELETE FROM {self.table_name} WHERE staff = %s AND ts_date = %s AND location_name = %s",
+                    (row['staff'], row['ts_date'], row['location_name'])
+                )
+            if len(unique_triples) > 0:
+                print(f"  Cleaned up {len(unique_triples)} existing staff/date/location entries from {self.table_name}")
 
             buffer = StringIO()
             df_clean.to_csv(buffer, index=False, header=False)
@@ -158,7 +178,7 @@ class ExceptionReportImporter(BaseImporter):
             cur.copy_from(buffer, self.table_name, sep=',', columns=list(df_clean.columns))
             return True
         except Exception as e:
-            print(f"❌ Processing error: {e}")
+            print(f"Error: {e}")
             return False
 
 class LeaveRequestImporter(BaseImporter):
@@ -185,7 +205,7 @@ class LeaveRequestImporter(BaseImporter):
             
             missing_cols = [col for col in mapping.keys() if col not in df.columns]
             if missing_cols:
-                print(f"❌ Missing columns: {missing_cols}")
+                print(f"Error - Missing columns: {missing_cols}")
                 return False
                 
             df_transformed = df[list(mapping.keys())].rename(columns=mapping).copy()
@@ -204,20 +224,20 @@ class LeaveRequestImporter(BaseImporter):
             os.makedirs(seeds_dir, exist_ok=True)
             output_path = os.path.join(seeds_dir, "leave_requests.csv")
             df_transformed.to_csv(output_path, index=False)
-            print(f"  🚀 Updated seed file: {output_path}")
+            print(f"  Updated seed file: {output_path}")
             
             return True
         except Exception as e:
-            print(f"❌ Processing error: {e}")
+            print(f"Error: {e}")
             return False
 
     def post_import_action(self):
         try:
-            print("  🏗️ Running 'dbt seed -s leave_requests'...")
+            print("  Running 'dbt seed -s leave_requests'...")
             subprocess.run(["dbt", "seed", "-s", "leave_requests"], check=True)
-            print("  ✅ dbt seed completed successfully.")
+            print("  dbt seed completed successfully.")
         except Exception as e:
-            print(f"  ⚠️ Warning: dbt seed action failed: {e}")
+            print(f"  Warning: dbt seed action failed: {e}")
 
 class StaffWeeklyImporter(BaseImporter):
     def process_and_inject(self, cur, file_path):
@@ -231,7 +251,7 @@ class StaffWeeklyImporter(BaseImporter):
                 cur.copy_expert(f"COPY {self.table_name} {cols} FROM STDIN WITH (FORMAT CSV, HEADER true, DELIMITER ',')", f)
             return True
         except Exception as e:
-            print(f"❌ Processing error: {e}")
+            print(f"Error: {e}")
             return False
 
 def main():
@@ -241,10 +261,10 @@ def main():
         LeaveRequestImporter("leave_requests", os.getenv("PATTERN_LEAVE_REQUESTS", "leave_taken_table*.csv")),
     ]
     
-    print("🚦 Starting Payroll Import Automation...")
+    print("\n--- Starting Payroll Import Automation ---")
     for importer in importers:
         importer.run_import()
-    print("🏁 All available files processed.")
+    print("--- All available files processed. ---\n")
 
 if __name__ == "__main__":
     main()
