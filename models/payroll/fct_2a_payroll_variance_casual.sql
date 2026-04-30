@@ -35,6 +35,8 @@ deputy_report as (
 
 variance as (
     SELECT
+        p.weekending,
+        p.employee_id,
         p.employee,
         p.paid_hours as py_hrs,
         d.total_hours as d_hrs,
