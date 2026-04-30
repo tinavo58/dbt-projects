@@ -122,3 +122,4 @@ final as (
 )
 
 select * from final
+order by weekending desc nulls last
