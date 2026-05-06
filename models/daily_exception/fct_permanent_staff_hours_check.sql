@@ -28,7 +28,6 @@ worked_hours as (
     select
         week_ending,
         staff,
-        site,
         SUM(case WHEN to_char(ts_date, 'Dy') = 'Mon' THEN total_hours ELSE null END) as Mon,
         SUM(CASE WHEN to_char(ts_date, 'Dy') = 'Tue' THEN total_hours ELSE null END) as Tue,
         SUM(case WHEN to_char(ts_date, 'Dy') = 'Wed' THEN total_hours ELSE null END) as Wed,
@@ -39,7 +38,7 @@ worked_hours as (
         count(staff) as shifts_worked,
         sum(total_hours) as total_hours
     from current_exceptions
-    group by 1, 2, 3
+    group by 1, 2
 ),
 
 latest_we as (
